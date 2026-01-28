@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:13
+    container_name: ontology-db
+    environment:
+      POSTGRES_DB: cxgn
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - ontology-network
+
+  api:
+    build: ./ontology-api
+    container_name: ontology-api
+    ports:
+      - "5001:5001"
+    environment:
+      - DB_HOST=${DB_HOST:-breedbase_db}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-breedbase}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+    networks:
+      - ontology-network
+      - breedbase-network
+
+  frontend:
+    build: ./ontology-visualizer
+    container_name: ontology-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - ontology-network
+
+networks:
+  ontology-network:
+    driver: bridge
+  breedbase-network:
+    external: true
+    name: breedbase_dockerfile_default
