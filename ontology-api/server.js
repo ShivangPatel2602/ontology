@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 const { Pool } = require("pg");
 require("dotenv").config();
 
@@ -125,6 +127,56 @@ app.get("/api/test", async (req, res) => {
         "Check if database is accessible: psql -h localhost -U postgres -d cxgn",
         "Ensure database host/port are correct for your setup",
       ],
+    });
+  }
+});
+
+const { parseMainClasses, parseSubclassHierarchy } = require("./oboParser");
+
+function readOboFile() {
+  const oboPath = path.join(__dirname, "blueberry.obo");
+  return fs.readFileSync(oboPath, "utf-8");
+}
+
+app.get("/api/ontology/load", (req, res) => {
+  try {
+    const content = readOboFile();
+    const classes = parseMainClasses(content);
+
+    res.json({
+      success: true,
+      classes,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: `Failed to load ontology: ${err.message}`,
+    });
+  }
+});
+
+app.get("/api/ontology/classes/:className/subclasses", (req, res) => {
+  try {
+    const { className } = req.params;
+    const content = readOboFile();
+    const tree = parseSubclassHierarchy(content, className);
+
+    if (!tree) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid class. Must be one of: Method, Scale, Trait, Variable`,
+      });
+    }
+
+    res.json({
+      success: true,
+      class: className,
+      subclasses: tree.subclasses,
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      error: `Failed to fetch subclasses: ${err.message}`,
     });
   }
 });

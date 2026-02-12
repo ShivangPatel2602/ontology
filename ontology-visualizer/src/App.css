@@ -40,3 +40,36 @@
 .read-the-docs {
   color: #888;
 }
+
+button {
+  padding: 0.6em 1.2em;
+  margin: 0.5em;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #e74c3c;
+  margin: 1em 0;
+}
+
+.ontology-classes {
+  margin-top: 2em;
+}
+
+.class-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1em;
+  margin-top: 1em;
+}
+
+.class-buttons button.selected {
+  background: #646cff;
+  color: white;
+}

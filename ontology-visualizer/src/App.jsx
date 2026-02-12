@@ -1,44 +1,74 @@
-import { useState, useEffect } from "react";
-import OntologyGraph from "./components/OntologyGraph";
-import { fetchOntologies } from "./services/ontologyService";
+import { useState } from "react";
+import {
+  loadOntologyFromObo,
+  fetchSubclasses,
+} from "./services/ontologyService";
 import "./App.css";
 
 function App() {
-  const [ontologies, setOntologies] = useState([]);
-  const [selectedCvId, setSelectedCvId] = useState(null);
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedClass, setSelectedClass] = useState(null);
 
-  useEffect(() => {
-    const loadOntologies = async () => {
-      try {
-        const data = await fetchOntologies();
-        setOntologies(data);
-        if (data.length > 0) {
-          setSelectedCvId(data[0].cv_id);
-        }
-      } catch (err) {
-        console.error("Error loading ontologies:", err);
+  const handleClassClick = async (cls) => {
+    setSelectedClass(cls);
+    try {
+      const data = await fetchSubclasses(cls);
+      if (data.success && data.subclasses) {
+        console.log(`${cls} subclasses:`, data.subclasses);
       }
-    };
-    loadOntologies();
-  }, []);
+    } catch (err) {
+      console.error(`Failed to fetch ${cls} subclasses:`, err);
+    }
+  };
+
+  const handleLoadOntology = async () => {
+    setLoading(true);
+    setError(null);
+    setClasses([]);
+    setSelectedClass(null);
+    try {
+      const data = await loadOntologyFromObo();
+      if (data.success && data.classes) {
+        setClasses(data.classes);
+      } else {
+        setError("Invalid response from server");
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || "Failed to load ontology");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="App">
       <header>
         <h1>BreedBase Ontology Visualizer</h1>
-        <select
-          value={selectedCvId || ""}
-          onChange={(e) => setSelectedCvId(Number(e.target.value))}
-        >
-          <option value="">Select an ontology...</option>
-          {ontologies.map((ont) => (
-            <option key={ont.cv_id} value={ont.cv_id}>
-              {ont.name}
-            </option>
-          ))}
-        </select>
+        <button onClick={handleLoadOntology} disabled={loading}>
+          {loading ? "Loading..." : "Load Ontology"}
+        </button>
       </header>
-      <main>{selectedCvId && <OntologyGraph cvId={selectedCvId} />}</main>
+      <main>
+        {error && <p className="error">{error}</p>}
+        {classes.length > 0 && (
+          <section className="ontology-classes">
+            <h2>Select a central node</h2>
+            <div className="class-buttons">
+              {classes.map((cls) => (
+                <button
+                  key={cls}
+                  className={selectedClass === cls ? "selected" : ""}
+                  onClick={() => handleClassClick(cls)}
+                >
+                  {cls}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
     </div>
   );
 }
